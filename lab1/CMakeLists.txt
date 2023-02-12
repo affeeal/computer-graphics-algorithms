@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 project("lab1")
 
-file(GLOB LAB_SOURCES *.cpp ../glad.c)
+file(GLOB LAB_SOURCES *.cpp)
 
 add_executable(${PROJECT_NAME} ${LAB_SOURCES})
 
