@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.20)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 set(PROJECT_NAME "Computer graphics algorithms")
 
@@ -13,3 +13,4 @@ find_package(OpenGL REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
 
 add_subdirectory(lab1)
+add_subdirectory(lab2)
