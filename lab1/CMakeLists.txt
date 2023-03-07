@@ -1,9 +1,7 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.20)
 
 project("lab1")
 
-file(GLOB LAB_SOURCES *.cpp)
-
-add_executable(${PROJECT_NAME} ${LAB_SOURCES})
+add_executable(${PROJECT_NAME} main.cpp) 
 
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenGL::GL glfw)

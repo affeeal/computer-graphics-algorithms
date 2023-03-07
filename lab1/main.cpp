@@ -1,7 +1,6 @@
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
 
-#include <cmath>
 #include <iostream>
 
 float angle = 45.f;
