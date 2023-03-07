@@ -13,9 +13,6 @@ using std::cos;
 
 GLdouble f = 0.5;
 
-GLdouble theta = asin(f / sqrt(2));
-GLdouble phi = asin(f / sqrt(2 - f * f));
-
 GLdouble beta = 0;
 GLdouble alpha = 0;
 
@@ -56,8 +53,11 @@ int main()
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		else
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		
 
 		// additional cube
+		GLdouble theta = asin(0.5 / sqrt(2));
+		GLdouble phi = asin(0.5 / sqrt(2 - 0.5 * 0.5));
 		GLdouble* isometric = newAxonometric(theta, phi);
 		glLoadIdentity();
 		glMultMatrixd(translation);
@@ -66,6 +66,8 @@ int main()
 		delete[] isometric;
 
 		// main cube
+		theta = asin(f / sqrt(2));
+		phi = asin(f / sqrt(2 - f * f));
 		isometric = newAxonometric(theta + alpha, phi + beta);
 		glLoadIdentity();
 		glMultMatrixd(isometric);
@@ -100,6 +102,14 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
 		case GLFW_KEY_LEFT:
 			beta -= 0.05;
 			break;
+		case GLFW_KEY_KP_ADD:
+			f += 0.01;
+			if (f >= 1) f = -1;
+			break;
+		case GLFW_KEY_KP_SUBTRACT:
+			f -= 0.01;
+			if (f <= -1) f = 1;
+			break;
 		case GLFW_KEY_SPACE:
 			fill_mode = !fill_mode;
 			break;
@@ -122,6 +132,14 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
 			break;
 		case GLFW_KEY_LEFT:
 			beta -= 0.05;
+			break;
+		case GLFW_KEY_KP_ADD:
+			f += 0.01;
+			if (f >= 1) f = -1;
+			break;
+		case GLFW_KEY_KP_SUBTRACT:
+			f -= 0.01;
+			if (f <= -1) f = 1;
 			break;
 		default:
 			std::cout << "no action for repeated key" << std::endl;
