@@ -14,3 +14,4 @@ find_package(glfw3 3.3 REQUIRED)
 
 add_subdirectory(lab1)
 add_subdirectory(lab2)
+add_subdirectory(lab3)

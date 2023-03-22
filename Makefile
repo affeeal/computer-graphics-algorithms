@@ -1,5 +1,5 @@
 .PHONY: clean generate build \
-	lab1 lab2
+	lab1 lab2 lab3
 
 clean:
 	rm -rf build
@@ -18,3 +18,6 @@ lab1:
 
 lab2:
 	./build/lab2/lab2
+
+lab3:
+	./build/lab3/lab3
