@@ -1,6 +1,8 @@
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
 
+#include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <map>
@@ -10,13 +12,23 @@
 
 constexpr GLint kWidth = 640;
 constexpr GLint kHeight = 640;
-constexpr GLint kPartitionX = 320;
+constexpr GLint kPartitionX = 640;
 
 struct Point {
   int x;
   int y;
 
   explicit Point(int x, int y) : x(x), y(y) {}
+};
+
+struct Neighbours {
+  GLfloat red;
+  GLfloat green;
+  GLfloat blue;
+  int count;
+
+  explicit Neighbours(GLfloat red, GLfloat green, GLfloat blue,
+      int count) : red(red), green(green), blue(blue), count(count) {}
 };
 
 GLfloat frame_buffer[3 * kWidth * kHeight];
@@ -160,6 +172,51 @@ void FillFaces() {
   }
 }
 
+void Check(int i, Neighbours& neigbours) {
+  if (0 <= i && i <= 3 * kHeight * kWidth - 1) {
+    neigbours.count++;
+    neigbours.red += frame_buffer[i];
+    neigbours.green += frame_buffer[i + 1];
+    neigbours.blue += frame_buffer[i + 2];
+  }
+}
+
+Neighbours Get(Point p) {
+  Neighbours neigbours(0, 0, 0, 0);
+  Check(3 * ((p.y - 1) * kWidth + p.x - 2), neigbours);
+  Check(3 * ((p.y - 1) * kWidth + p.x - 1), neigbours);
+  Check(3 * ((p.y - 1) * kWidth + p.x), neigbours);
+  Check(3 * ( p.y      * kWidth + p.x - 2), neigbours);
+  Check(3 * ( p.y      * kWidth + p.x - 1), neigbours);
+  Check(3 * ( p.y      * kWidth + p.x), neigbours);
+  Check(3 * ((p.y + 1) * kWidth + p.x - 2), neigbours);
+  Check(3 * ((p.y + 1) * kWidth + p.x - 1), neigbours);
+  Check(3 * ((p.y + 1) * kWidth + p.x), neigbours);
+  return neigbours;
+}
+
+void Filtrate() {
+  std::vector<GLfloat> temp_frame_buffer(3 * kHeight * kWidth);
+  // TODO: исправить случай 0, 0
+  for (auto x = 1; x < kWidth; x++) {
+    for (auto y = 0; y < kHeight; y++) {
+      auto neighbours = Get(Point(x, y));
+      auto i = 3 * (y * kWidth + x - 1);
+      assert(0 <= i && i <= 3 * kHeight * kWidth - 1);
+      temp_frame_buffer[i] = neighbours.red / neighbours.count;
+      temp_frame_buffer[i + 1] = neighbours.green / neighbours.count;
+      temp_frame_buffer[i + 2] = neighbours.blue / neighbours.count;
+    }
+  }
+
+  for (auto x = 0; x < kWidth; x++) {
+    for (auto y = 0; y < kHeight; y++) {
+      auto i = 3 * (y * kWidth + x - 1);
+      frame_buffer[i] = temp_frame_buffer[i];
+    }
+  }
+}
+
 void MouseButtonCallback(GLFWwindow* window,
                          int button,
                          int action,
@@ -174,6 +231,7 @@ void MouseButtonCallback(GLFWwindow* window,
     Plot(points.back(), 1, 0, 0);
     FillFaces();
     PlotLines();
+    Filtrate();
   }
 }
 
