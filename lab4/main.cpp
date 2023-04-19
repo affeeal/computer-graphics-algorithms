@@ -1,13 +1,10 @@
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
 
-#include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <map>
 #include <string>
-#include <utility>
 #include <vector>
 
 constexpr GLint kWidth = 640;
@@ -83,7 +80,7 @@ void PlotLine(Point p0, Point p1) {
   auto x = p0.x;
   auto y = p0.y;
   for (auto i = 0; i < delta_x; i++) {
-    Plot(Point(x, y), 1, 0, 0);
+    Plot(Point(x, y), 0.5, 0.5, 0.5);
 
     if (low)
       x += sign_x;
@@ -202,7 +199,6 @@ void Filtrate() {
     for (auto y = 0; y < kHeight; y++) {
       auto neighbours = Get(Point(x, y));
       auto i = 3 * (y * kWidth + x - 1);
-      assert(0 <= i && i <= 3 * kHeight * kWidth - 1);
       temp_frame_buffer[i] = neighbours.red / neighbours.count;
       temp_frame_buffer[i + 1] = neighbours.green / neighbours.count;
       temp_frame_buffer[i + 2] = neighbours.blue / neighbours.count;
@@ -228,7 +224,7 @@ void MouseButtonCallback(GLFWwindow* window,
     glfwGetCursorPos(window, &x, &y);
     points.push_back(Point(int(x), kHeight - int(y)));
     
-    Plot(points.back(), 1, 0, 0);
+    Plot(points.back(), 0.5, 0.5, 0.5);
     FillFaces();
     PlotLines();
     Filtrate();
