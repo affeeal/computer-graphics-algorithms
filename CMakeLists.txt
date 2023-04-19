@@ -1,17 +1,20 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.15)
 
-set(CMAKE_CXX_STANDARD 17)
-
-set(PROJECT_NAME "Computer graphics algorithms")
-
-project(${PROJECT_NAME})
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wextra -pedantic -Wformat=2 -Wfloat-equal -Wconversion \
-        -Wlogical-op -Wshift-overflow=2 -Wduplicated-cond -Wcast-qual -Wcast-align")
+project(graphics)
 
 find_package(OpenGL REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
 
+add_library(graphics_compiler_flags INTERFACE)
+
+target_compile_features(graphics_compiler_flags INTERFACE
+                        cxx_std_17)
+
+target_compile_options(graphics_compiler_flags INTERFACE
+  "$<BUILD_INTERFACE:-Wall;-Wextra;-Wpedantic;-Wformat=2;-Wunused>"
+)
+
 add_subdirectory(lab1)
 add_subdirectory(lab2)
 add_subdirectory(lab3)
+add_subdirectory(lab4)
