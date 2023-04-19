@@ -3,33 +3,59 @@
 
 #include <cmath>
 #include <iostream>
+#include <map>
+#include <string>
 #include <utility>
 #include <vector>
 
 constexpr GLint kWidth = 640;
-constexpr GLint kHeight = 480;
+constexpr GLint kHeight = 640;
+constexpr GLint kPartitionX = 320;
+
+struct Point {
+  int x;
+  int y;
+
+  explicit Point(int x, int y) : x(x), y(y) {}
+};
 
 GLfloat frame_buffer[3 * kWidth * kHeight];
-std::vector<std::pair<int, int>> points;
+std::vector<Point> points;
 
-void Plot(GLint x, GLint y, GLfloat r, GLfloat g, GLfloat b) {
-  auto i = 3 * (y * kWidth + x);
+void Plot(Point p, GLfloat r = 0, GLfloat g = 0, GLfloat b = 0) {
+  auto i = 3 * (p.y * kWidth + p.x - 1);
   frame_buffer[i] = r;
   frame_buffer[i + 1] = g;
   frame_buffer[i + 2] = b;
 }
 
+void Invert(Point p) {
+  auto i = 3 * (p.y * kWidth + p.x - 1);
+  // TODO: исправить уродство ниже
+  frame_buffer[i] = float(int(frame_buffer[i]) ^ 1);
+  frame_buffer[i + 1] = float(int(frame_buffer[i + 1]) ^ 1);
+  frame_buffer[i + 2] = float(int(frame_buffer[i + 2]) ^ 1);
+}
+
+void InvertHorizontal(Point p) {
+  // TODO: убрать прорез
+  auto sign_x = (p.x < kPartitionX) ? 1 : -1;
+  for (auto x = p.x; x != kPartitionX; x += sign_x) {
+    Invert(Point(x, p.y));
+  }
+}
+
 void ClearFrameBuffer() {
   for (auto x = 0; x < kWidth; x++) {
     for (auto y = 0; y < kHeight; y++) {
-      Plot(x, y, 1, 1, 1);
+      Plot(Point(x, y));
     }
   }
 }
 
-void PlotLine(int x0, int y0, int x1, int y1) {
-  auto delta_x = std::abs(x1 - x0);
-  auto delta_y = std::abs(y1 - y0);
+void PlotLine(Point p0, Point p1) {
+  auto delta_x = std::abs(p1.x - p0.x);
+  auto delta_y = std::abs(p1.y - p0.y);
   auto low = true;
   if (delta_y > delta_x) {
     low = false;
@@ -39,13 +65,13 @@ void PlotLine(int x0, int y0, int x1, int y1) {
   auto e = - 0.5;
   auto delta_e = double(delta_y) / delta_x;
 
-  auto sign_x = (x1 > x0) ? 1 : -1;
-  auto sign_y = (y1 > y0) ? 1 : -1;
+  auto sign_x = (p1.x > p0.x) ? 1 : -1;
+  auto sign_y = (p1.y > p0.y) ? 1 : -1;
 
-  auto x = x0;
-  auto y = y0;
+  auto x = p0.x;
+  auto y = p0.y;
   for (auto i = 0; i < delta_x; i++) {
-    Plot(x, y, 0, 0, 0);
+    Plot(Point(x, y), 1, 0, 0);
 
     if (low)
       x += sign_x;
@@ -63,28 +89,102 @@ void PlotLine(int x0, int y0, int x1, int y1) {
   }
 }
 
-void DrawLines() {
+void PlotLines() {
   if (points.size() == 2) {
-    PlotLine(points[0].first, points[0].second,
-              points[1].first, points[1].second); 
+    PlotLine(points[0], points[1]);
   } else if (points.size() > 2) {
     for (unsigned long i = 0; i < points.size() - 1; i++) {
-      PlotLine(points[i].first, points[i].second,
-               points[i + 1].first, points[i + 1].second); 
+      PlotLine(points[i], points[i + 1]);
+    }
+    PlotLine(points.back(), points.front());
+  }
+}
+
+void FillFace(Point p0, Point p1, std::map<int, int>& overlap) {
+  auto delta_x = std::abs(p1.x - p0.x);
+  auto delta_y = std::abs(p1.y - p0.y);
+  auto low = true;
+  if (delta_y > delta_x) {
+    low = false;
+    std::swap(delta_x, delta_y);
+  }
+
+  auto error = - 0.5;
+  auto delta_error = double(delta_y) / delta_x;
+
+  auto sign_x = (p1.x > p0.x) ? 1 : -1;
+  auto sign_y = (p1.y > p0.y) ? 1 : -1;
+
+  auto x = p0.x;
+  auto y = p0.y;
+  auto previous_y = y;
+  for (auto i = 0; i < delta_x - 1; i++) {
+    if (low)
+      x += sign_x;
+    else
+     y += sign_y;
+    error += delta_error;
+
+    if (error >= 0) {
+      if (low)
+        y += sign_y;
+      else
+        x += sign_x;
+      error--;
+    }
+
+    if (y != previous_y) {
+      overlap[y]++;
+      InvertHorizontal(Point(x, y));
+    }
+
+    previous_y = y;
+  }
+}
+
+void FillFaces() {
+  if (points.size() <= 2) {
+    return;
+  }
+  
+  std::map<int, int> overlap;
+  for (unsigned long i = 0; i < points.size() - 1; i++) {
+    FillFace(points[i], points[i + 1], overlap);
+  }
+  FillFace(points.back(), points.front(), overlap);
+
+  for (auto p : points) {
+    if (overlap[p.y] % 2 == 1) {
+      InvertHorizontal(p);
     }
   }
 }
 
-void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+void MouseButtonCallback(GLFWwindow* window,
+                         int button,
+                         int action,
+                         int mods) {
   if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
     ClearFrameBuffer();
+    
     GLdouble x, y;
     glfwGetCursorPos(window, &x, &y);
-    auto actual_x = int(x);
-    auto actual_y = kHeight - int(y);
-    Plot(actual_x, actual_y, 0, 0, 0);
-    points.push_back(std::make_pair(actual_x, actual_y));
-    DrawLines();
+    points.push_back(Point(int(x), kHeight - int(y)));
+    
+    Plot(points.back(), 1, 0, 0);
+    FillFaces();
+    PlotLines();
+  }
+}
+
+void KeyCallback(GLFWwindow* window,
+                 int key,
+                 int scancode,
+                 int action,
+                 int mods) {
+  if (key == GLFW_KEY_DELETE && action == GLFW_PRESS) {
+    ClearFrameBuffer();
+    points.clear();
   }
 }
 
@@ -101,6 +201,7 @@ int main() {
   ClearFrameBuffer();
   glfwMakeContextCurrent(window);
   glfwSetMouseButtonCallback(window, MouseButtonCallback);
+  glfwSetKeyCallback(window, KeyCallback);
 
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
