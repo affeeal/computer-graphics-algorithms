@@ -1,24 +1,21 @@
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
 
-#include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <map>
 #include <string>
-#include <utility>
 #include <vector>
 
 constexpr GLint kWidth = 640;
 constexpr GLint kHeight = 640;
 constexpr GLint kPartitionX = 640;
 
-struct Point {
+struct Pixel {
   int x;
   int y;
 
-  explicit Point(int x, int y) : x(x), y(y) {}
+  explicit Pixel(int x, int y) : x(x), y(y) {}
 };
 
 struct Neighbours {
@@ -32,16 +29,16 @@ struct Neighbours {
 };
 
 GLfloat frame_buffer[3 * kWidth * kHeight];
-std::vector<Point> points;
+std::vector<Pixel> points;
 
-void Plot(Point p, GLfloat r = 0, GLfloat g = 0, GLfloat b = 0) {
+void Plot(Pixel p, GLfloat r = 0, GLfloat g = 0, GLfloat b = 0) {
   auto i = 3 * (p.y * kWidth + p.x - 1);
   frame_buffer[i] = r;
   frame_buffer[i + 1] = g;
   frame_buffer[i + 2] = b;
 }
 
-void Invert(Point p) {
+void Invert(Pixel p) {
   auto i = 3 * (p.y * kWidth + p.x - 1);
   // TODO: исправить уродство ниже
   frame_buffer[i] = float(int(frame_buffer[i]) ^ 1);
@@ -49,23 +46,23 @@ void Invert(Point p) {
   frame_buffer[i + 2] = float(int(frame_buffer[i + 2]) ^ 1);
 }
 
-void InvertHorizontal(Point p) {
+void InvertHorizontal(Pixel p) {
   // TODO: убрать прорез
   auto sign_x = (p.x < kPartitionX) ? 1 : -1;
   for (auto x = p.x; x != kPartitionX; x += sign_x) {
-    Invert(Point(x, p.y));
+    Invert(Pixel(x, p.y));
   }
 }
 
 void ClearFrameBuffer() {
   for (auto x = 0; x < kWidth; x++) {
     for (auto y = 0; y < kHeight; y++) {
-      Plot(Point(x, y));
+      Plot(Pixel(x, y));
     }
   }
 }
 
-void PlotLine(Point p0, Point p1) {
+void PlotLine(Pixel p0, Pixel p1) {
   auto delta_x = std::abs(p1.x - p0.x);
   auto delta_y = std::abs(p1.y - p0.y);
   auto low = true;
@@ -83,7 +80,7 @@ void PlotLine(Point p0, Point p1) {
   auto x = p0.x;
   auto y = p0.y;
   for (auto i = 0; i < delta_x; i++) {
-    Plot(Point(x, y), 1, 0, 0);
+    Plot(Pixel(x, y), 0.5, 0.5, 0.5);
 
     if (low)
       x += sign_x;
@@ -112,7 +109,7 @@ void PlotLines() {
   }
 }
 
-void FillFace(Point p0, Point p1, std::map<int, int>& overlap) {
+void FillFace(Pixel p0, Pixel p1, std::map<int, int>& overlap) {
   auto delta_x = std::abs(p1.x - p0.x);
   auto delta_y = std::abs(p1.y - p0.y);
   auto low = true;
@@ -147,7 +144,7 @@ void FillFace(Point p0, Point p1, std::map<int, int>& overlap) {
 
     if (y != previous_y) {
       overlap[y]++;
-      InvertHorizontal(Point(x, y));
+      InvertHorizontal(Pixel(x, y));
     }
 
     previous_y = y;
@@ -181,7 +178,7 @@ void Check(int i, Neighbours& neigbours) {
   }
 }
 
-Neighbours Get(Point p) {
+Neighbours Get(Pixel p) {
   Neighbours neigbours(0, 0, 0, 0);
   Check(3 * ((p.y - 1) * kWidth + p.x - 2), neigbours);
   Check(3 * ((p.y - 1) * kWidth + p.x - 1), neigbours);
@@ -200,9 +197,8 @@ void Filtrate() {
   // TODO: исправить случай 0, 0
   for (auto x = 1; x < kWidth; x++) {
     for (auto y = 0; y < kHeight; y++) {
-      auto neighbours = Get(Point(x, y));
+      auto neighbours = Get(Pixel(x, y));
       auto i = 3 * (y * kWidth + x - 1);
-      assert(0 <= i && i <= 3 * kHeight * kWidth - 1);
       temp_frame_buffer[i] = neighbours.red / neighbours.count;
       temp_frame_buffer[i + 1] = neighbours.green / neighbours.count;
       temp_frame_buffer[i + 2] = neighbours.blue / neighbours.count;
@@ -226,9 +222,9 @@ void MouseButtonCallback(GLFWwindow* window,
     
     GLdouble x, y;
     glfwGetCursorPos(window, &x, &y);
-    points.push_back(Point(int(x), kHeight - int(y)));
+    points.push_back(Pixel(int(x), kHeight - int(y)));
     
-    Plot(points.back(), 1, 0, 0);
+    Plot(points.back(), 0.5, 0.5, 0.5);
     FillFaces();
     PlotLines();
     Filtrate();

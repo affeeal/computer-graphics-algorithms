@@ -6,15 +6,15 @@ find_package(OpenGL REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
 
 add_library(graphics_compiler_flags INTERFACE)
-
 target_compile_features(graphics_compiler_flags INTERFACE
                         cxx_std_17)
 
 target_compile_options(graphics_compiler_flags INTERFACE
-  "$<BUILD_INTERFACE:-Wall;-Wextra;-Wpedantic;-Wformat=2;-Wunused>"
+  "$<BUILD_INTERFACE:-g;-Wall;-Wextra;-Wpedantic;-Wformat=2;-Wunused>"
 )
 
 add_subdirectory(lab1)
 add_subdirectory(lab2)
 add_subdirectory(lab3)
 add_subdirectory(lab4)
+add_subdirectory(lab5)
