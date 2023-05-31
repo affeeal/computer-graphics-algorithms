@@ -1,4 +1,4 @@
-#include <GL/gl.h>
+include <GL/gl.h>
 #include <GLFW/glfw3.h>
 
 #include <cmath>
@@ -18,7 +18,7 @@ GLdouble alpha = 0;
 
 GLboolean fill_mode = true;
 
-void keyCallback(GLFWwindow*, int, int, int, int);
+void KeyCallback(GLFWwindow*, int, int, int, int);
 void drawCube(GLdouble size);
 
 GLdouble* newTranslation(GLdouble, GLdouble, GLdouble);
@@ -37,7 +37,7 @@ int main()
 	}
 
 	glfwMakeContextCurrent(window);
-	glfwSetKeyCallback(window, keyCallback);
+	glfwSetKeyCallback(window, KeyCallback);
 	
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
@@ -86,7 +86,7 @@ int main()
 	return 0;
 }
 
-void keyCallback(GLFWwindow* window, int key, int, int action, int)
+void KeyCallback(GLFWwindow* window, int key, int, int action, int)
 {
 	if (action == GLFW_PRESS)
 		switch (key) {

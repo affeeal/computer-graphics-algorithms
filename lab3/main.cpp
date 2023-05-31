@@ -13,8 +13,8 @@ GLdouble beta = 0;
 GLdouble alpha = 0;
 GLint edgesCount = 6;
 
-void keyCallback(GLFWwindow*, int, int, int, int);
-void drawCylinder(GLdouble radius, GLdouble distance);
+void KeyCallback(GLFWwindow*, int, int, int, int);
+void DrawCylinder(GLdouble radius, GLdouble distance);
 
 int main() {
   if (!glfwInit())
@@ -27,7 +27,7 @@ int main() {
   }
 
   glfwMakeContextCurrent(window);
-  glfwSetKeyCallback(window, keyCallback);
+  glfwSetKeyCallback(window, KeyCallback);
 
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
@@ -39,7 +39,7 @@ int main() {
     glLoadIdentity();
     glRotated(alpha, 1, 0, 0);
     glRotated(beta, 0, 1, 0);
-    drawCylinder(0.5, 0.5);
+    DrawCylinder(0.5, 0.5);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -51,7 +51,7 @@ int main() {
   return 0;
 }
 
-void drawCylinder(GLdouble radius, GLdouble distance) {
+void DrawCylinder(GLdouble radius, GLdouble distance) {
   // glBegin(GL_TRIANGLE_STRIP);
   glBegin(GL_LINE_STRIP);
 
@@ -67,7 +67,7 @@ void drawCylinder(GLdouble radius, GLdouble distance) {
   glEnd();
 }
 
-void keyCallback(GLFWwindow* window, int key, int, int action, int) {
+void KeyCallback(GLFWwindow* window, int key, int, int action, int) {
   if (action == GLFW_PRESS) {
     switch (key) {
      case GLFW_KEY_DOWN:
