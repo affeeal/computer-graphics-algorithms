@@ -19,11 +19,11 @@ const GLint kEdgesCountLowerBound = 6;
 GLfloat alpha = 0;
 GLfloat beta = 0;
 GLfloat radius = 0.5f;
-GLint edgesCount = 6;
+GLint edgesCount = 20;
 
 // Animation
 GLfloat x_velocity = 0.015f;
-GLfloat y_velocity = 0.01f;
+GLfloat y_velocity = 0.012f;
 GLfloat x_position = 0.0f;
 GLfloat y_position = 0.0f;
 
@@ -79,7 +79,6 @@ int main() {
     
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, texture_id);
-
     DrawCylinder(radius, kDistance, x_position, y_position);
 
     glfwSwapBuffers(window);
@@ -113,12 +112,11 @@ void DrawCylinder(GLfloat radius, GLfloat distance,
     float x = radius * cos(i * 2 * M_PI / edgesCount) + x_position;
     float y = radius * sin(i * 2 * M_PI / edgesCount) + y_position;
     
-    float texture_x = float(i) / edgesCount;
-    
-    glTexCoord2f(x, y);
+    glTexCoord2f(x, -0.5);
     glColor3f(1.0f, 1.0f, 1.0f);
     glVertex3f(x, y, -0.5 * distance);
     
+    glTexCoord2f(x, 0.5);
     glVertex3f(x, y, 0.5 * distance);
   }
 
@@ -143,6 +141,8 @@ void SetTexture(const char* filename) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  // glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, x, y, 0, GL_RGB, GL_UNSIGNED_BYTE, texture);
 
