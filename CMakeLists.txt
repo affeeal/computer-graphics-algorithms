@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 project(graphics)
 
 find_package(OpenGL REQUIRED)
-find_package(glfw3 3.3 REQUIRED)
+find_package(glfw3 REQUIRED)
 
 add_library(graphics_compiler_flags INTERFACE)
 target_compile_features(graphics_compiler_flags INTERFACE
@@ -19,3 +19,5 @@ add_subdirectory(lab3)
 add_subdirectory(lab4)
 add_subdirectory(lab5)
 add_subdirectory(lab6)
+add_subdirectory(lab7)
+
