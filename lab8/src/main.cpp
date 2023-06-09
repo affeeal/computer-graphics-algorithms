@@ -1,8 +1,14 @@
+#include <cmath>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
+#include <glm/matrix.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "utils.hpp"
 
@@ -28,8 +34,9 @@ int main() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); 
 
-  GLFWwindow* window
-    = glfwCreateWindow(kWindowWidth, kWindowHeight, kWindowTitle, NULL, NULL);
+  GLFWwindow* window {
+    glfwCreateWindow(kWindowWidth, kWindowHeight, kWindowTitle, NULL, NULL)
+  };
   if (!window) {
     std::cerr << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
@@ -46,71 +53,94 @@ int main() {
   }
   
   glViewport(0, 0, kViewportWidth, kViewportHeight);
+  glEnable(GL_DEPTH_TEST);
 
-  unsigned int shader_program = CreateShaderProgram(kVertexShaderPath.c_str(),
-      kFragmentShaderPath.c_str());
+  unsigned int shader_program {
+    CreateShaderProgram(kVertexShaderPath.c_str(), kFragmentShaderPath.c_str())
+  };
   if (shader_program == -1) {
     glfwTerminate();
     return -1;
   }
 
-  unsigned int texture = CreateTexture(kTexturePath.c_str());
+  unsigned int texture {
+    CreateTexture(kTexturePath.c_str())
+  };
   if (texture == -1) {
     glfwTerminate();
     return -1;
   }
 
-  float vertices[] = {
-     // positions       // texture
-     0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
-     0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-    -0.5f,  0.5f, 0.0f, 0.0f, 1.0f
+  const double kCylinderHeight {0.6f};
+  const double kCylinderRadius {0.4f};
+  unsigned int cylinder_sector_count {8};
+  
+  std::vector<double> coordinates {
+    CreateCylinderCoordinates(cylinder_sector_count, kCylinderRadius,
+                              kCylinderHeight)
+  };
+
+  std::vector<unsigned int> indices {
+    CreateCylinderIndices(cylinder_sector_count)
   };
   
-  unsigned int indices[] = {
-    0, 1, 3,
-    1, 2, 3
-  }; 
-
-  unsigned int vao = 0;
+  unsigned int vao {0};
   glGenVertexArrays(1, &vao);
   glBindVertexArray(vao);
 
-  unsigned int vbo = 0;
+  unsigned int vbo {0};
   glGenBuffers(1, &vbo);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, coordinates.size() * sizeof(double),
+               coordinates.data(), GL_DYNAMIC_DRAW);
 
-  unsigned int ebo = 0;
+  unsigned int ebo {0};
   glGenBuffers(1, &ebo);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-      GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(double),
+               indices.data(), GL_DYNAMIC_DRAW);
 
-  const std::size_t kStride = 5 * sizeof(float);
+  const unsigned int kStride = 5 * sizeof(double);
   
-  // position attribute
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, kStride,
-      reinterpret_cast<void*>(0));
+  // позиционные координаты
+  glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, kStride,
+                        reinterpret_cast<void*>(0));
   glEnableVertexAttribArray(0);
 
-  // texture attribute
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, kStride,
-      reinterpret_cast<void*>(3 * sizeof(float)));
+  // текстурные координаты
+  glVertexAttribPointer(1, 2, GL_DOUBLE, GL_FALSE, kStride,
+                        reinterpret_cast<void*>(3 * sizeof(double)));
   glEnableVertexAttribArray(1); 
-
-  glUseProgram(shader_program);
 
   while (!glfwWindowShouldClose(window)) {
     ProcessInput(window);
     
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
     glBindTexture(GL_TEXTURE_2D, texture);
+
+    glm::mat4 transform {glm::mat4(1.0f)};
+    transform = glm::rotate(
+        transform,
+        static_cast<float>(glfwGetTime()),
+        glm::vec3(1.0f, 1.0f, 0.0f));
+
+    glUseProgram(shader_program);
+    int transform_location {
+      glGetUniformLocation(shader_program, "transform")
+    };
+    
+    if (transform_location == -1) {
+      std::cerr << "Failed to get uniform location" << std::endl;
+      break;
+    }
+    
+    glUniformMatrix4fv(transform_location, 1, GL_FALSE,
+        glm::value_ptr(transform));
+    
     glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
     glfwSwapBuffers(window);
     glfwPollEvents();

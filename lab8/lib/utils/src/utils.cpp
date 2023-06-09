@@ -1,5 +1,7 @@
 #include "utils.hpp"
 
+#include <cassert>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -18,8 +20,7 @@ void ProcessInput(GLFWwindow *window) {
 }
 
 unsigned int CreateShaderProgram(
-    const char* vertex_shader_path,
-    const char* fragment_shader_path) {
+    const char* vertex_shader_path, const char* fragment_shader_path) {
   std::string vertex_shader_source_string { };
   std::string fragment_shader_source_string { };
   
@@ -130,5 +131,79 @@ unsigned int CreateTexture(const char* texture_path) {
   stbi_image_free(data);
 
   return texture;
+}
+
+std::vector<double> CreateCylinderCoordinates(
+    unsigned int sector_count, double radius, double height) {
+  assert(sector_count >= 3);
+  
+  // Для каждой вершины последовательно записываются 3 позиционные и 2
+  // текстурные координаты. На каждой итерации цикла ниже в вектор заносятся
+  // по 5 координат двух вершин, имеющих одинаковые позиционные координаты x и
+  // y, но противоположные z. Отсюда 10 = 2 * (3 + 2).
+  std::vector<double> coordinates(10 * (sector_count + 1));
+  
+  const double kSectorStep {2.0f * M_PI / sector_count};
+  
+  double sector_angle {0};
+  double position_x {0};
+  double position_y {0};
+  double texture_x {0};
+  for (unsigned int i {0}, j {0}; i <= sector_count; i++) {
+    sector_angle = i * kSectorStep;
+    position_x = radius * std::cos(sector_angle);
+    position_y = radius * std::sin(sector_angle);
+    texture_x = static_cast<double>(i) / sector_count;
+    std::cout << position_x << ' ' << position_y << ' ' << texture_x << std::endl;
+    
+    // позиционные координаты верхней вершины
+    coordinates[j++] = position_x;
+    coordinates[j++] = position_y;
+    coordinates[j++] = 0.5f * height;
+
+    // текстурные координаты верхней вершины
+    coordinates[j++] = texture_x;
+    coordinates[j++] = 1.0f;
+    
+    // позиционные координаты нижней вершины
+    coordinates[j++] = position_x;
+    coordinates[j++] = position_y;
+    coordinates[j++] = -0.5f * height;
+
+    // текстурные координаты нижней вершины
+    coordinates[j++] = texture_x;
+    coordinates[j++] = 0.0f;
+  }
+
+  return coordinates;
+}
+
+std::vector<unsigned int> CreateCylinderIndices(unsigned int sector_count) {
+  assert(sector_count >= 3);
+  
+  // Грань цилиндра строится из двух треугольников, каждый из которых задаётся
+  // тремя индексами. Отсюда 6 = 2 * 3.
+  std::vector<unsigned int> indices(6 * sector_count);
+  
+  unsigned int double_i {0};
+  for (unsigned int i {0}, j {0}; i < sector_count; i++) {
+    double_i = i * 2;
+
+    // верхняя левая вершина
+    indices[j++] = double_i;
+    // нижняя левая вершина
+    indices[j++] = double_i + 1;
+    // верхняя правая вершина
+    indices[j++] = double_i + 2;
+
+    // нижняя левая вершина
+    indices[j++] = double_i + 1;
+    // верхняя правая вершина
+    indices[j++] = double_i + 2;
+    // нижняя правая вершина
+    indices[j++] = double_i + 3;
+  }
+
+  return indices;
 }
 
