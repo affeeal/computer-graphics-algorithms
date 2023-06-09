@@ -1,6 +1,4 @@
-#include <cmath>
 #include <iostream>
-#include <string>
 #include <vector>
 
 #include <glad/glad.h>
@@ -12,18 +10,6 @@
 
 #include "utils.hpp"
 
-const int kWindowWidth = 800;
-const int kWindowHeight = 600;
-const char* kWindowTitle = "Title";
-
-const GLsizei kViewportWidth = kWindowWidth;
-const GLsizei kViewportHeight = kWindowHeight;
-
-const std::string kPathPrefix = "lab8/data/";
-const std::string kVertexShaderPath = kPathPrefix + "vertex_shader.glsl";
-const std::string kFragmentShaderPath = kPathPrefix + "fragment_shader.glsl";
-const std::string kTexturePath = kPathPrefix + "texture.jpg";
-  
 int main() {
   if (!glfwInit()) {
     std::cerr << "Failed to initialize GLFW" << std::endl;
@@ -35,16 +21,19 @@ int main() {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); 
 
   GLFWwindow* window {
-    glfwCreateWindow(kWindowWidth, kWindowHeight, kWindowTitle, NULL, NULL)
+    glfwCreateWindow(kWindowWidth, kWindowHeight, kWindowTitle,
+                     nullptr, nullptr)
   };
+  
   if (!window) {
     std::cerr << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
     return -1;
   }
+  
+  glfwSetFramebufferSizeCallback(window, FramebufferSizeCallback);
 
   glfwMakeContextCurrent(window);
-  glfwSetFramebufferSizeCallback(window, FramebufferSizeCallback);
   
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     std::cerr << "Failed to initialize GLAD" << std::endl;
@@ -53,91 +42,98 @@ int main() {
   }
   
   glViewport(0, 0, kViewportWidth, kViewportHeight);
-  glEnable(GL_DEPTH_TEST);
 
   unsigned int shader_program {
     CreateShaderProgram(kVertexShaderPath.c_str(), kFragmentShaderPath.c_str())
   };
+  
   if (shader_program == -1) {
     glfwTerminate();
     return -1;
   }
+  
+  glUseProgram(shader_program);
 
-  unsigned int texture {
-    CreateTexture(kTexturePath.c_str())
+  int transform_loc {
+    glGetUniformLocation(shader_program, "transform")
   };
+  
+  if (transform_loc == -1) {
+    std::cerr << "Failed to get transform uniform location" << std::endl;
+    glfwTerminate();
+    return -1;
+  }
+  
+  unsigned int texture { CreateTexture(kTexturePath.c_str()) };
   if (texture == -1) {
     glfwTerminate();
     return -1;
   }
-
-  const double kCylinderHeight {0.6f};
-  const double kCylinderRadius {0.4f};
-  unsigned int cylinder_sector_count {8};
   
+  glBindTexture(GL_TEXTURE_2D, texture);
+
   std::vector<double> coordinates {
-    CreateCylinderCoordinates(cylinder_sector_count, kCylinderRadius,
+    CreateCylinderCoordinates(kCylinderSectorCount, kCylinderRadius,
                               kCylinderHeight)
   };
 
   std::vector<unsigned int> indices {
-    CreateCylinderIndices(cylinder_sector_count)
+    CreateCylinderIndices(kCylinderSectorCount)
   };
-  
-  unsigned int vao {0};
+
+  unsigned int vao { 0 };
   glGenVertexArrays(1, &vao);
   glBindVertexArray(vao);
 
-  unsigned int vbo {0};
+  unsigned int vbo { 0 };
   glGenBuffers(1, &vbo);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBufferData(GL_ARRAY_BUFFER, coordinates.size() * sizeof(double),
                coordinates.data(), GL_DYNAMIC_DRAW);
 
-  unsigned int ebo {0};
+  unsigned int ebo { 0 };
   glGenBuffers(1, &ebo);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(double),
                indices.data(), GL_DYNAMIC_DRAW);
 
-  const unsigned int kStride = 5 * sizeof(double);
-  
-  // позиционные координаты
-  glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, kStride,
-                        reinterpret_cast<void*>(0));
+  const unsigned int kStride { 5 * sizeof(double) };
+  void* position_offset { reinterpret_cast<void*>(0) };
+  glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, kStride, position_offset);
   glEnableVertexAttribArray(0);
 
-  // текстурные координаты
-  glVertexAttribPointer(1, 2, GL_DOUBLE, GL_FALSE, kStride,
-                        reinterpret_cast<void*>(3 * sizeof(double)));
+  void* texture_offset { reinterpret_cast<void*>(3 * sizeof(double)) };
+  glVertexAttribPointer(1, 2, GL_DOUBLE, GL_FALSE, kStride, texture_offset);
   glEnableVertexAttribArray(1); 
-
+  
+  // углы поворота вокруг векторов (1, 0, 0) и (0, 1, 0) соответственно
+  float alpha { 0 };
+  float beta { 0 };
+  
+  // центр фигуры
+  float x_offset { 0 };
+  float y_offset { 0 };
+  
+  // направление движения фигуры
+  int x_direction { 1 };
+  int y_direction { 1 };
+  
+  glEnable(GL_DEPTH_TEST);
+  
   while (!glfwWindowShouldClose(window)) {
-    ProcessInput(window);
+    ProcessInput(window, alpha, beta);
     
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glm::mat4 transform {glm::mat4(1.0f)};
-    transform = glm::rotate(
-        transform,
-        static_cast<float>(glfwGetTime()),
-        glm::vec3(1.0f, 1.0f, 0.0f));
-
-    glUseProgram(shader_program);
-    int transform_location {
-      glGetUniformLocation(shader_program, "transform")
-    };
+    UpdatePosition(x_offset, y_offset, x_direction, y_direction);
     
-    if (transform_location == -1) {
-      std::cerr << "Failed to get uniform location" << std::endl;
-      break;
-    }
+    glm::mat4 transform { glm::mat4(1.0f) };
+    transform = glm::translate(transform, glm::vec3(x_offset, y_offset, 0.0f));
+    transform = glm::rotate(transform, alpha, glm::vec3(1.0f, 0.0f, 0.0f));
+    transform = glm::rotate(transform, beta, glm::vec3(0.0f, 1.0f, 0.0f));
     
-    glUniformMatrix4fv(transform_location, 1, GL_FALSE,
-        glm::value_ptr(transform));
+    glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
     
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
